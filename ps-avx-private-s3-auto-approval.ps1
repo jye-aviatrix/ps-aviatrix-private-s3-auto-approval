@@ -57,18 +57,24 @@ foreach ($NLB in $NLBs) {
         Write-Error $response.reason
         exit
     }
-    elseif ($response.results.bucket_list | Where-Object { $_.verdict -ne "Allow" }) {
-        Write-Host "Found S3 buckets for $NLB not allowed, working on allowing them"
+    elseif ($response.results.bucket_list | Where-Object { $_.verdict -eq "New" }) {
+        Write-Host "Found newly added S3 buckets for $NLB, working on allowing them"
     }
     else {
-        Write-Host "All S3 Buckets for $NLB already allowed, nothing to do"
+        Write-Host "No new S3 Buckets for $NLB found, nothing to do"
         Continue
     }
 
     # Construct allow list
     $bucket_allow_list = @()
     foreach ($bucket in $response.results.bucket_list) {
-        $bucket_allow_list += @{"bucket" = $bucket.bucket; "verdict" = "Allow" }     
+
+        if ($bucket.verdict -eq "New") {
+            $bucket_allow_list += @{"bucket" = $bucket.bucket; "verdict" = "Allow" }
+        } else {
+            $bucket_allow_list += $bucket
+        }
+             
     }
     $bucket_allow_list_json = $bucket_allow_list | ConvertTo-Json
 

@@ -10,6 +10,9 @@ $ export AVIATRIX_USERNAME = "admin"
 $ export AVIATRIX_PASSWORD = "password"
 ```
 
+
+Requires PowerShell Core 7.x
+
 The script does the following:
 
 1. Login to Aviatrix Controller and obtain CID
