@@ -52,7 +52,12 @@ foreach ($NLB in $NLBs) {
     # $response | ConvertTo-Json
 
     # Check to see if there are S3 Buckets still not allowed for NLB, if all S3 Buckets already allowed, skip to next NLB
-    if ($response.results.bucket_list | Where-Object { $_.verdict -ne "Allow" }) {
+    if ($response.return -ne $true) {
+        Write-Error "Failed to obtain list of S3 buckets from $NLB"
+        Write-Error $response.reason
+        exit
+    }
+    elseif ($response.results.bucket_list | Where-Object { $_.verdict -ne "Allow" }) {
         Write-Host "Found S3 buckets for $NLB not allowed, working on allowing them"
     }
     else {
@@ -98,7 +103,7 @@ foreach ($NLB in $NLBs) {
     $response = Invoke-RestMethod "https://${env:AVIATRIX_CONTROLLER_IP}/v1/api" -Method 'POST' -Headers $headers -Body $body -SkipCertificateCheck
     # $response | ConvertTo-Json
     if ($response.return -ne $true) {
-        Write-Error "Failed to allow S3 list on Private S3 NLB $NLB"
+        Write-Error "Failed to update allow S3 list on Private S3 NLB $NLB"
         Write-Error $response.reason
         exit
     }
