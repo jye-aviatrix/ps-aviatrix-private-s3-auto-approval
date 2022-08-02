@@ -13,7 +13,7 @@ $ export AVIATRIX_PASSWORD = "password"
 
 Requires PowerShell Core 7.x
 
-The script does the following:
+The script **ps-avx-private-s3-auto-approval.ps1**  does the following:
 
 1. Login to Aviatrix Controller and obtain CID
 2. Obtain Private S3 NLBs 
@@ -31,3 +31,14 @@ REST API reference:
 6. Within the code, update bucket "verdict" to "Allow"
 7. Update Private S3 bucket policy
 ![](20220628123221.png)  
+
+
+## Warning
+
+**ps-avx-private-s3-random-policy.ps1** should only be used in pre-prod environment. This script randomly set the bucket to either New/Allow/Deny verdict.
+
+**ps-avx-private-s3-auto-approval.ps1** is the main script to run.
+
+## Logging
+
+For any changes done, it will be logged each run under /changelogs subfolder.

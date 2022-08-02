@@ -60,6 +60,9 @@ else {
     $NLBs = $response.results
 }
 
+# Obtain current path for log file
+$CurrentPath = $PSScriptRoot
+
 # Get S3 Buckets
 foreach ($NLB in $NLBs) {
     $response = Invoke-RestMethod "https://${env:AVIATRIX_CONTROLLER_IP}/v1/api?action=get_private_s3_buckets&CID=$CID&nlb_name=$NLB" -Method 'GET' -Headers $headers -SkipCertificateCheck
@@ -81,17 +84,21 @@ foreach ($NLB in $NLBs) {
 
     # Construct allow list
     $bucket_allow_list = @()
+    $change_list = @()
     foreach ($bucket in $response.results.bucket_list) {
 
         $t = Get-Random -Maximum 3
         if ($t -eq 0) {
+            $change_list += @{"bucket" = $bucket.bucket; "oldVerdict" = $bucket.verdict; "newVerdict" = "New" }
             continue
         }
         if ($t -eq 1) {
             $bucket_allow_list += @{"bucket" = $bucket.bucket; "verdict" = "Allow" }
+            $change_list += @{"bucket" = $bucket.bucket; "oldVerdict" = $bucket.verdict; "newVerdict" = "Allow" }
         }
         if ($t -eq 2) {
             $bucket_allow_list += @{"bucket" = $bucket.bucket; "verdict" = "Deny" }
+            $change_list += @{"bucket" = $bucket.bucket; "oldVerdict" = $bucket.verdict; "newVerdict" = "Deny" }
         }
 
         # if ($bucket.verdict -eq "New") {
@@ -141,5 +148,36 @@ foreach ($NLB in $NLBs) {
     else {
         Write-Host "Successfully allowed S3 list Private S3 NLB $NLB"
         Write-Host $response.results
+
+        # Check if changeLogs folder exist, if not create it
+        $logFileFolder = $CurrentPath + "\changeLogs"     
+        
+        $folderExist = $false
+        if (!(Test-Path $logFileFolder)) {
+            Write-Host "Creating changeLogs folder"
+            New-Item $logFileFolder -ItemType Directory | Out-Null
+            if ($?) {
+                Write-Host "changeLogs folder created"
+                $folderExist = $true
+            } else {
+                Write-Error "Failed to create changeLogs"
+            }
+        } else {
+            $folderExist = $true
+        }
+
+        Write-Host "Writting Change Logs..."
+        if ($folderExist) {
+            $logFilePath = $logFileFolder + "\ps-avx-private-s3-auto-approval_" + (Get-Date -Format "yyyy-MM-dd_HH-mm-ss")
+        } else {
+            $logFilePath = $CurrentPath + "\ps-avx-private-s3-auto-approval_" + (Get-Date -Format "yyyy-MM-dd_HH-mm-ss")
+        }
+
+        $change_list | ConvertTo-Json -Depth 10 | Out-File $logFilePath -Force
+        if ($?) {
+            Write-Host "Change logs written successfully"
+        } else {
+            Write-Error "Failed to write change logs"
+        }
     }
 }
